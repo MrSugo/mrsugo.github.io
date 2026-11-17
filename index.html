@@ -1087,8 +1087,9 @@ drawTag();
 var tagMat = new THREE.MeshBasicMaterial({map:tagH.t, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, toneMapped:false});
 [0, 2].forEach(function(i){ var m = new THREE.Mesh(new THREE.PlaneGeometry(0.1, 0.0547), tagMat); m.renderOrder = 15; scene.add(m); tags.push({m:m, grip:yokeParts[i].o}); });
 var hud = holoCanvas(560, 300), hudBtns = [], hudHover = '';
-var hudMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 0.118), new THREE.MeshBasicMaterial({map:hud.t, transparent:true, depthTest:false, depthWrite:false, blending:THREE.AdditiveBlending, toneMapped:false}));
-hudMesh.renderOrder = 21; hudMesh.visible = false; scene.add(hudMesh);
+/* projected on the windshield glass, upper right */
+var hudMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.66, 0.354), new THREE.MeshBasicMaterial({map:hud.t, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, toneMapped:false}));
+hudMesh.renderOrder = 21; hudMesh.visible = false; hudMesh.position.set(0.74, 1.93, -1.672); scene.add(hudMesh);
 function hudBtn(id, label, x, y, w, h){ var g = hud.g, hot = hudHover === id; hudBtns.push({id:id, x:x, y:y, w:w, h:h}); rr(g, x, y, w, h, 12);
   if(hot){ g.fillStyle = 'rgba(255,255,255,0.9)'; g.fill(); } g.lineWidth = 4; g.strokeStyle = '#fff'; g.stroke(); g.fillStyle = hot ? '#000' : '#fff'; g.font = '30px ' + FONT_D; g.fillText(label, x + w / 2, y + h / 2 + 2); }
 function drawHud(){
@@ -1110,9 +1111,7 @@ function placeHolos(){
   tagMat.color.set(AMBER).convertSRGBToLinear().multiplyScalar(2.4 * on);
   tags.forEach(function(T){ T.m.visible = on > 0; if(!T.m.visible){ return; } T.m.position.set(0, 0.175 + (reduced ? 0 : Math.sin(time * 3) * 0.004), 0.006); T.grip.localToWorld(T.m.position); T.m.quaternion.copy(camera.quaternion); });
   hudMesh.visible = G.on; if(!G.on){ return; }
-  var d = 0.6, hh = Math.tan(camera.fov * Math.PI / 360) * d, hw = hh * camera.aspect;
-  hudMesh.position.set(hw - 0.125, hh - 0.075, -d).applyQuaternion(camera.quaternion).add(camera.position); hudMesh.quaternion.copy(camera.quaternion);
-  hudMesh.material.color.set(AMBER).convertSRGBToLinear().multiplyScalar(2.4);
+  hudMesh.material.color.set(AMBER).convertSRGBToLinear().multiplyScalar(1.9);
 }
 function startGame(){
   startAudio(); if(focused){ setSection(-1); } hint.style.display = 'none';
