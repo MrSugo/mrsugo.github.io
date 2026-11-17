@@ -81,7 +81,7 @@ body{background:var(--ink);color:var(--text);font-family:var(--body);font-size:1
   <div class="sr" id="keys" aria-label="Sections"></div>
 </div>
 <div class="hud bottom">
-  <div class="hint" id="hint">Move the mouse to look around and use the console. Left wing: personal keys, colour keys and the cabin light slider (up is brighter). The red thumb buttons on the yoke start a 60-second mini game. Right wing: volume, track selector and thrust lever (pull it toward you). On a screen, the buttons are touch buttons: click them, or use Tab, Enter and Esc. Click anywhere to start the music.</div>
+  <div class="hint" id="hint">Move the mouse to look around and use the console. Left wing: personal keys, colour keys and the cabin light slider (up is brighter). The glowing PLAY buttons on top of the yoke grips start a 60-second mini game. Right wing: volume, track selector and thrust lever (pull it toward you). On a screen, the buttons are touch buttons: click them, or use Tab, Enter and Esc. Click anywhere to start the music.</div>
   <a id="cvLink" href="cv.pdf" target="_blank" rel="noopener" hidden>Open CV (PDF)</a>
   <button id="back" type="button" hidden>Back to the cockpit</button>
 </div>
@@ -635,7 +635,7 @@ function drawMain(){
     g.fillStyle = HI; g.font = '80px ' + FONT_D; g.fillText('EDOARDO FABBRO', 60, 228);
     g.fillStyle = AMBER; g.font = '40px ' + FONT_M; g.fillText('Venture capital. Restaurant websites. AI.', 60, 306);
     g.fillStyle = HI; g.font = '36px ' + FONT_M; g.fillText('> Press a key on the console to open a section', 60, 384);
-    g.fillStyle = AMBER; g.font = '30px ' + FONT_M; g.fillText('> Red thumb buttons on the yoke: play Debris Sweep', 60, 438);
+    g.fillStyle = AMBER; g.font = '30px ' + FONT_M; g.fillText('> PLAY buttons on the yoke grips: Debris Sweep, a 60 s game', 60, 438);
     g.fillStyle = RED; g.font = '32px ' + FONT_M; g.fillText('PLANETS PASSED ' + String(passed).padStart(3, '0'), 60, 506);
   } else {
     g.fillStyle = RED; g.font = '28px ' + FONT_D; g.fillText('WORK  0' + (current + 1) + ' / 03', 60, 72);
@@ -1077,17 +1077,54 @@ function burst(p, n, sat){
   for(var i = 0; i < n; i++){ var q = parts[pNext]; pNext = (pNext + 1) % PN; q.p.copy(p); q.v.set(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize().multiplyScalar(4 + Math.random() * 10); q.life = 0.7 + Math.random() * 0.6;
     q.c.set(sat ? '#50FF9A' : (i % 3 === 0 ? HI : i % 3 === 1 ? AMBER : RED)).multiplyScalar(2.2); }
 }
+/* holo tags over the thumb buttons say they start the game; an in-game holo in the corner carries the exit */
+function holoCanvas(w, h){ var c = makeCanvas(w, h); return {c:c, g:c.getContext('2d'), t:tex(c)}; }
+var tagH = holoCanvas(256, 140), tags = [];
+function drawTag(){ var g = tagH.g; g.clearRect(0, 0, 256, 140); g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#fff';
+  g.font = '44px ' + FONT_D; g.fillText('PLAY', 128, 34); g.font = '20px ' + FONT_D; g.fillText('DEBRIS SWEEP', 128, 76);
+  g.beginPath(); g.moveTo(108, 100); g.lineTo(148, 100); g.lineTo(128, 128); g.closePath(); g.fill(); tagH.t.needsUpdate = true; }
+drawTag();
+var tagMat = new THREE.MeshBasicMaterial({map:tagH.t, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, toneMapped:false});
+[0, 2].forEach(function(i){ var m = new THREE.Mesh(new THREE.PlaneGeometry(0.1, 0.0547), tagMat); m.renderOrder = 15; scene.add(m); tags.push({m:m, grip:yokeParts[i].o}); });
+var hud = holoCanvas(560, 300), hudBtns = [], hudHover = '';
+var hudMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 0.118), new THREE.MeshBasicMaterial({map:hud.t, transparent:true, depthTest:false, depthWrite:false, blending:THREE.AdditiveBlending, toneMapped:false}));
+hudMesh.renderOrder = 21; hudMesh.visible = false; scene.add(hudMesh);
+function hudBtn(id, label, x, y, w, h){ var g = hud.g, hot = hudHover === id; hudBtns.push({id:id, x:x, y:y, w:w, h:h}); rr(g, x, y, w, h, 12);
+  if(hot){ g.fillStyle = 'rgba(255,255,255,0.9)'; g.fill(); } g.lineWidth = 4; g.strokeStyle = '#fff'; g.stroke(); g.fillStyle = hot ? '#000' : '#fff'; g.font = '30px ' + FONT_D; g.fillText(label, x + w / 2, y + h / 2 + 2); }
+function drawHud(){
+  var g = hud.g, W = 560, H = 300; hudBtns = []; g.clearRect(0, 0, W, H); g.textAlign = 'left'; g.textBaseline = 'middle';
+  g.fillStyle = 'rgba(255,255,255,0.07)'; g.fillRect(10, 10, W - 20, H - 20);
+  g.strokeStyle = '#fff'; g.lineWidth = 4; [[10, 10, 1, 1], [W - 10, 10, -1, 1], [10, H - 10, 1, -1], [W - 10, H - 10, -1, -1]].forEach(function(c){ g.beginPath(); g.moveTo(c[0] + c[2] * 46, c[1]); g.lineTo(c[0], c[1]); g.lineTo(c[0], c[1] + c[3] * 46); g.stroke(); });
+  g.fillStyle = 'rgba(255,255,255,0.12)'; for(var y = 14; y < H - 10; y += 6){ g.fillRect(12, y, W - 24, 1); }
+  g.fillStyle = '#fff'; g.font = '26px ' + FONT_D; g.fillText('DEBRIS SWEEP', 34, 52);
+  g.textAlign = 'right'; g.font = '30px ' + FONT_M; g.fillText(G.state === 'run' ? Math.ceil(G.t) + 's  ' + String(G.score).padStart(4, '0') : 'SCORE ' + String(G.score).padStart(4, '0'), W - 34, 52);
+  g.textAlign = 'center';
+  if(G.state === 'run'){ hudBtn('exit', 'EXIT  [ESC]', 34, 110, W - 68, 150); }
+  else { hudBtn('again', 'PLAY AGAIN', 34, 110, (W - 68) / 2 - 10, 150); hudBtn('exit', 'EXIT', W / 2 + 10, 110, (W - 68) / 2 - 10, 150); }
+  hud.t.needsUpdate = true;
+}
+function hudHit(nd){ if(!hudMesh.visible){ return ''; } ray.setFromCamera(nd, camera); var h = ray.intersectObject(hudMesh, false)[0]; if(!h || !h.uv){ return ''; }
+  var px = h.uv.x * 560, py = (1 - h.uv.y) * 300, id = ''; hudBtns.forEach(function(b){ if(px >= b.x && px <= b.x + b.w && py >= b.y && py <= b.y + b.h){ id = b.id; } }); return id || 'panel'; }
+function placeHolos(){
+  var on = !G.on && !focused && !reduced ? 0.55 + 0.45 * Math.sin(time * 3) : (!G.on && !focused ? 1 : 0);
+  tagMat.color.set(AMBER).convertSRGBToLinear().multiplyScalar(2.4 * on);
+  tags.forEach(function(T){ T.m.visible = on > 0; if(!T.m.visible){ return; } T.m.position.set(0, 0.175 + (reduced ? 0 : Math.sin(time * 3) * 0.004), 0.006); T.grip.localToWorld(T.m.position); T.m.quaternion.copy(camera.quaternion); });
+  hudMesh.visible = G.on; if(!G.on){ return; }
+  var d = 0.6, hh = Math.tan(camera.fov * Math.PI / 360) * d, hw = hh * camera.aspect;
+  hudMesh.position.set(hw - 0.125, hh - 0.075, -d).applyQuaternion(camera.quaternion).add(camera.position); hudMesh.quaternion.copy(camera.quaternion);
+  hudMesh.material.color.set(AMBER).convertSRGBToLinear().multiplyScalar(2.4);
+}
 function startGame(){
   startAudio(); if(focused){ setSection(-1); } hint.style.display = 'none';
   G.on = true; G.state = 'run'; G.t = 60; G.score = 0; G.hits = 0; G.missed = 0; G.friendly = 0; G.nextSpawn = 0.6; G.nextSat = 7 + Math.random() * 5; G.newBest = false; G.firing = false;
   targets.forEach(function(T){ T.on = false; T.g.visible = false; }); sats.forEach(function(s){ s.g.visible = false; });
-  reticle.visible = true; canvas.style.cursor = 'none'; sfx('start'); drawMain();
+  reticle.visible = true; canvas.style.cursor = 'none'; hudHover = ''; sfx('start'); drawMain(); drawHud();
   live.textContent = 'Debris Sweep started: 60 seconds. Aim with the mouse, click or press Space to fire, avoid the satellites. Escape to exit.';
 }
 function endRun(){
   G.state = 'over'; G.firing = false; reticle.visible = false; canvas.style.cursor = '';
   if(G.score > G.best){ G.best = G.score; G.newBest = true; try{ localStorage.setItem('ef-debris-best', String(G.best)); }catch(err){} }
-  sfx('end'); drawMain(); live.textContent = 'Run complete. Score ' + G.score + (G.newBest ? ', new best.' : '. Best ' + G.best + '.') + ' Press a thumb button to fly again or Escape to exit.';
+  sfx('end'); drawMain(); drawHud(); live.textContent = 'Run complete. Score ' + G.score + (G.newBest ? ', new best.' : '. Best ' + G.best + '.') + ' Press a thumb button to fly again or Escape to exit.';
 }
 function exitGame(){
   G.on = false; G.state = ''; G.firing = false; reticle.visible = false; canvas.style.cursor = '';
@@ -1105,7 +1142,8 @@ function fire(){
   G.flash = time + 0.08; sfx('zap');
 }
 function updateGame(dt){
-  fireMat.color.set(RED).convertSRGBToLinear().multiplyScalar(time < G.flash ? 4 : hoverKind === 'fire' ? 2.6 : G.on && G.state === 'run' ? 1.8 + Math.sin(time * 6) * 0.4 : 1.2);
+  placeHolos();
+  fireMat.color.set(RED).convertSRGBToLinear().multiplyScalar(time < G.flash ? 4 : hoverKind === 'fire' ? 2.6 : G.on && G.state === 'run' ? 1.8 + Math.sin(time * 6) * 0.4 : (!G.on && !focused && !reduced ? 1.6 + Math.sin(time * 3) * 0.8 : 1.4));
   junkLight.color.set(RED).convertSRGBToLinear().multiplyScalar(Math.sin(time * 9) > 0 ? 3 : 0.6);
   boltMat.color.set(HI).convertSRGBToLinear().multiplyScalar(3);
   reticle.material.color.set(AMBER).convertSRGBToLinear().multiplyScalar(1.6);
@@ -1129,7 +1167,7 @@ function updateGame(dt){
     G.nextSat -= dt; if(G.nextSat <= 0){ var fs = targets.filter(function(T){ return !T.on && T.sat; })[0]; if(fs){ launchTarget(fs); } G.nextSat = 8 + Math.random() * 6; }
     if(G.t <= 0){ G.t = 0; endRun(); }
   }
-  G.hud -= dt; if(G.hud <= 0){ G.hud = 0.15; drawMain(); }
+  G.hud -= dt; if(G.hud <= 0){ G.hud = 0.15; drawMain(); drawHud(); }
 }
 function drawGame(){
   var g = sMain.g(), W = 1280, H = 576; g.textBaseline = 'alphabetic';
@@ -1363,6 +1401,7 @@ document.addEventListener('keydown', function(e){
 });
 function pick(e){
   var r = canvas.getBoundingClientRect(); ndc.set((e.clientX - r.left) / r.width * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1); mouse.copy(ndc);
+  if(G.on){ var hh2 = hudHit(ndc), hb2 = hh2 === 'panel' ? '' : hh2; if(hb2 !== hudHover){ hudHover = hb2; drawHud(); } canvas.style.cursor = hudHover ? 'pointer' : (G.state === 'run' ? 'none' : ''); reticle.visible = G.state === 'run' && !hh2; if(hh2){ hoverKind = ''; hoverIndex = -1; return; } }
   if(G.on && G.state === 'run'){ ray.setFromCamera(ndc, camera); var gh = ray.intersectObjects(controls, false)[0], gk = gh ? gh.object.userData.kind : ''; hoverKind = gk === 'lever' || gk === 'fire' ? gk : ''; hoverIndex = -1; return; }
   if(focused){ hoverKind = ''; hoverIndex = -1; ray.setFromCamera(ndc, camera); var sh = ray.intersectObjects(screenFaces, false)[0], nh = null;
     if(sh && sh.uv){ var o = sh.object.userData.scr, px = sh.uv.x * o.cw, py = (1 - sh.uv.y) * o.ch; o.btns.forEach(function(b){ if(px >= b.x && px <= b.x + b.w && py >= b.y && py <= b.y + b.h){ nh = {o:o, id:b.id}; } }); }
@@ -1382,7 +1421,8 @@ canvas.addEventListener('pointermove', function(e){
 });
 canvas.addEventListener('pointerdown', function(e){
   startAudio(); hint.style.display = 'none';
-  if(G.on){ pick(e);
+  if(G.on){ pick(e); var hh3 = hudHit(ndc);
+    if(hh3 === 'exit'){ exitGame(); return; } if(hh3 === 'again'){ startGame(); return; } if(hh3){ return; }
     if(G.state === 'run'){ if(hoverKind === 'lever'){ dragKind = 'lever'; dragX = e.clientX; dragY = e.clientY; try{ canvas.setPointerCapture(e.pointerId); }catch(err){} return; } G.firing = true; G.nextShot = time + 0.17; fire(); return; }
     ray.setFromCamera(ndc, camera); var oh = ray.intersectObjects(controls, false)[0]; if(oh && oh.object.userData.kind === 'fire'){ startGame(); } else { exitGame(); } return; }
   if(focused){ pick(e); if(scrHover){ var b = findBtn(scrHover.o, scrHover.id); if(b){ runBtn(scrHover.o, b); } } else if(!scrOnFace){ setSection(-1); } return; }
