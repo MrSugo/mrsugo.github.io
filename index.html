@@ -918,8 +918,9 @@ add(yoke, rpanel(0.2, 0.11, 0.05, 0.04), mPanel);
 var ybar = add(yoke, new THREE.PlaneGeometry(0.12, 0.009), new THREE.MeshBasicMaterial({map:BARTEX, transparent:true, toneMapped:false}), 0, 0.026, 0.0256); barReg.push({bar:ybar, halo:add(yoke, new THREE.PlaneGeometry(0.16, 0.04), haloMat(), 0, 0.026, 0.0253)});
 /* PLAY: the yoke's centre button starts Debris Sweep */
 var playC = makeCanvas(256, 112), playT = tex(playC), playPressT = -9;
-function drawPlay(){ var g = playC.getContext('2d'); g.clearRect(0, 0, 256, 112); g.fillStyle = '#fff'; g.beginPath(); g.moveTo(40, 34); g.lineTo(40, 78); g.lineTo(76, 56); g.closePath(); g.fill();
-  g.font = '46px ' + FONT_D; g.textAlign = 'left'; g.textBaseline = 'middle'; g.fillText('PLAY', 92, 58); playT.needsUpdate = true; }
+function drawPlay(){ var g = playC.getContext('2d'), fs = 46; g.clearRect(0, 0, 256, 112); g.fillStyle = '#fff'; g.textAlign = 'left'; g.textBaseline = 'middle';
+  g.font = fs + 'px ' + FONT_D; var tw = g.measureText('PLAY').width; while(tw + 46 > 224 && fs > 20){ fs -= 2; g.font = fs + 'px ' + FONT_D; tw = g.measureText('PLAY').width; }
+  var x0 = (256 - (tw + 46)) / 2; g.beginPath(); g.moveTo(x0, 38); g.lineTo(x0, 74); g.lineTo(x0 + 30, 56); g.closePath(); g.fill(); g.fillText('PLAY', x0 + 46, 58); playT.needsUpdate = true; }
 /* a small raised housing on top of the yoke hub, its face tilted up toward the pilot */
 var playH = new THREE.Group(); playH.position.set(0, 0.056, 0.0); playH.rotation.x = -0.75; yoke.add(playH);
 add(playH, rpanel(0.12, 0.062, 0.036, 0.016), mPanel, 0, 0.026, -0.006);
