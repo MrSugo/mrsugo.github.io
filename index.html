@@ -32,9 +32,49 @@ body{background:var(--ink);color:var(--text);font-family:var(--body);font-size:1
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 #fallback{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:24px;text-align:center}
 @media (max-width:640px){.hint{display:none}}
+#boot{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:#050506;color:#35E0E6;font-family:'Share Tech Mono',ui-monospace,monospace;transition:opacity .6s ease}
+#boot::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.28) 0 2px,transparent 2px 4px)}
+#boot.done{opacity:0;pointer-events:none}
+.boot-box{width:min(420px,84vw)}
+.boot-head{font-family:var(--display);font-size:14px;letter-spacing:.22em;color:#F3EEE4;margin-bottom:18px}
+.boot-head span{color:#FF3D9A}
+.boot-bar{height:6px;border:1px solid rgba(53,224,230,.5);padding:2px;margin-bottom:20px}
+.boot-bar i{display:block;height:100%;background:#FF3D9A;box-shadow:0 0 12px #FF3D9A;transform:scaleX(0);transform-origin:left;animation:bootbar 1.9s steps(24) forwards}
+.boot-log{list-style:none;margin:0 0 18px;padding:0;font-size:15px;line-height:1.75}
+.boot-log li{display:flex;gap:10px;opacity:0;animation:bootln .01s forwards}
+.boot-log li::after{content:"";order:1;flex:1;border-bottom:1px dotted rgba(53,224,230,.35);transform:translateY(-6px)}
+.boot-log b{order:2;font-weight:400;color:#FF3D9A}
+.boot-log li:nth-child(1){animation-delay:.25s}.boot-log li:nth-child(2){animation-delay:.55s}.boot-log li:nth-child(3){animation-delay:.85s}.boot-log li:nth-child(4){animation-delay:1.15s}.boot-log li:nth-child(5){animation-delay:1.45s}
+.boot-foot{font-size:14px;color:#F3EEE4}
+.boot-cur{animation:bootcur .8s steps(1) infinite}
+@keyframes bootbar{to{transform:scaleX(1)}}
+@keyframes bootln{to{opacity:1}}
+@keyframes bootcur{50%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.boot-bar i{animation:none;transform:none}.boot-log li{animation:none;opacity:1}.boot-cur{animation:none}}
 </style>
 </head>
 <body>
+<div id="boot" role="status" aria-label="Loading the cockpit">
+  <div class="boot-box">
+    <div class="boot-head"><span>EF-1</span> FLIGHT SYSTEMS</div>
+    <div class="boot-bar"><i></i></div>
+    <ul class="boot-log">
+      <li>POWER BUS<b>OK</b></li>
+      <li>NAV COMPUTER<b>OK</b></li>
+      <li>HOLO PROJECTOR<b>OK</b></li>
+      <li>CABIN LIGHTS<b>DIMMED</b></li>
+      <li>ENGINES<b>IDLE</b></li>
+    </ul>
+    <div class="boot-foot">Loading your cockpit&hellip; Please wait<span class="boot-cur">_</span></div>
+  </div>
+</div>
+<script>
+/* boot panel: stays at least 2 s, then leaves as soon as the scene has drawn its first frame */
+(function(){ var t0 = Date.now(), el = document.getElementById('boot'), min = matchMedia('(prefers-reduced-motion: reduce)').matches ? 600 : 2000, gone = false;
+  function hide(){ if(gone){ return; } gone = true; el.classList.add('done'); setTimeout(function(){ el.remove(); }, 650); }
+  (function check(){ if(gone){ return; } if((window.__sceneReady && Date.now() - t0 >= min) || Date.now() - t0 > 15000 || (document.getElementById('fallback') && document.getElementById('fallback').style.display === 'flex')){ hide(); } else { setTimeout(check, 100); } })();
+})();
+</script>
 <canvas id="scene" aria-label="3D cockpit: work keys in front and personal keys on the left open sections on the centre display; on the right a volume knob, a three-position track selector and a thrust lever"></canvas>
 <div class="hud top">
   <div class="brand">EDOARDO FABBRO</div>
@@ -96,9 +136,9 @@ var SECTIONS = [
     ['The Odyssey','Christopher Nolan, 2026'],
     ['Scarface','Brian De Palma, 1983'],
     ['C\'è ancora domani','Paola Cortellesi, 2023']]},
-  {label:'PHOTOS', short:'Photos', lit:'b', group:'PERSONAL', icon:'photos', head:'PHOTOS', photos:['photos/photo1.jpg', 'photos/photo2.jpg', 'photos/photo3.jpg'],
-    captions:['It\'s me hiking in Madeira', 'It\'s me after a 120 km bike ride in Croatia', 'It\'s me in the Pyrenees'], items:[
-    ['Madeira','It\'s me hiking in Madeira'], ['Croatia','It\'s me after a 120 km bike ride in Croatia'], ['Pyrenees','It\'s me in the Pyrenees']]}
+  {label:'PHOTOS', short:'Photos', lit:'b', group:'PERSONAL', icon:'photos', head:'PHOTOS', photos:['photos/photo1.jpg', 'photos/photo2.jpg', 'photos/photo3.jpg', 'photos/photo4.jpg'],
+    captions:['It\'s me hiking in Madeira', 'It\'s me after a 120 km bike ride in Croatia', 'It\'s me in the Pyrenees', 'It\'s me doing what I love the most'], items:[
+    ['Madeira','It\'s me hiking in Madeira'], ['Croatia','It\'s me after a 120 km bike ride in Croatia'], ['Pyrenees','It\'s me in the Pyrenees'], ['Football','It\'s me doing what I love the most']]}
 ];
 var TRACKS = [
   {title:'Also sprach Zarathustra', by:'R. Strauss, 1896'},
@@ -626,7 +666,7 @@ function drawIcon(){
     g.save(); g.translate(W / 2, H / 2 - 12); g.rotate(-T);
     g.strokeStyle = DIMC; g.lineWidth = 2; g.setLineDash([8, 10]); g.beginPath(); g.moveTo(0, -160); g.lineTo(0, 150); g.stroke(); g.setLineDash([]);
     g.strokeStyle = RED; g.lineWidth = 3; g.beginPath(); g.ellipse(0, 132, 80, 13, 0, 0, 6.283); g.stroke(); g.beginPath(); g.ellipse(0, 132, 48, 7, 0, 0, 6.283); g.stroke();
-    var fade = (scrHover && scrHover.o === sText && /^p/.test(scrHover.id)) || (kbSel && kbSel.o === sText && /^p/.test(kbSel.id)) ? 0.22 : 1;
+    var fade = 1;
     if(iconTint[s.icon]){ g.save(); g.globalAlpha = (0.5 + 0.5 * Math.abs(ca)) * fade; g.scale(ca, 1); g.drawImage(iconTint[s.icon], -S / 2, -S / 2 - 8, S, S); g.restore();
       g.strokeStyle = HI; g.globalAlpha = 0.35 * (1 - Math.abs(ca)); g.lineWidth = 4; g.beginPath(); g.moveTo(0, -S / 2 - 8); g.lineTo(0, S / 2 - 8); g.stroke(); g.globalAlpha = 1; }
     g.restore();
@@ -1158,7 +1198,7 @@ function runBtn(o, b){
   var a = b.act || [];
   if(a[1] === 'back'){ setSection(-1); return; }
   if(a[1] === 'photo'){ return; }
-  if(a[1] === 'next' || a[1] === 'prev'){ photoPage += a[1] === 'next' ? 1 : -1; scrHover = null; kbSel = null; o.redraw(); return; }
+  if(a[1] === 'next' || a[1] === 'prev'){ photoPage += a[1] === 'next' ? 2 : -2; scrHover = null; kbSel = null; o.redraw(); return; }
   if(a[1] === 'link' || a[1] === 'cv'){ openUrl(a[2]); live.textContent = 'Opening ' + a[2]; }
   if(a[1] === 'copy'){ copyText(a[2]); o.flash = {id:b.id, until:time + 1.6}; live.textContent = 'Copied ' + a[2]; }
   o.redraw();
@@ -1294,6 +1334,7 @@ if(THREE.EffectComposer && THREE.RenderPass && THREE.ShaderPass && THREE.UnrealB
 var qA = new THREE.Quaternion(), qB = new THREE.Quaternion(), qC = new THREE.Quaternion(), eA = new THREE.Euler(), lastIcon = 0;
 var clock = new THREE.Clock(), time = 0, focusPos = new THREE.Vector3(), camPos = new THREE.Vector3(), lastSec = 0, segC = new THREE.Color();
 function frame(){
+  if(!window.__sceneReady){ window.__sceneReady = true; }
   var dt = Math.min(clock.getDelta(), 0.05); time += dt;
   var k = 1 - Math.pow(0.0015, dt);
 
