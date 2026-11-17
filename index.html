@@ -81,7 +81,7 @@ body{background:var(--ink);color:var(--text);font-family:var(--body);font-size:1
   <div class="sr" id="keys" aria-label="Sections"></div>
 </div>
 <div class="hud bottom">
-  <div class="hint" id="hint">Move the mouse to look around and use the console. Left wing: personal keys, colour keys and the cabin light slider (up is brighter). Lifting the red-striped guards on the yoke thumb buttons starts a 60-second mini game. Right wing: volume, track selector and thrust lever (pull it toward you). On a screen, the buttons are touch buttons: click them, or use Tab, Enter and Esc. Click anywhere to start the music.</div>
+  <div class="hint" id="hint">Move the mouse to look around and use the console. Left wing: personal keys, colour keys and the cabin light slider (up is brighter). The PLAY button in the middle of the yoke starts a 60-second mini game. Right wing: volume, track selector and thrust lever (pull it toward you). On a screen, the buttons are touch buttons: click them, or use Tab, Enter and Esc. Click anywhere to start the music.</div>
   <a id="cvLink" href="cv.pdf" target="_blank" rel="noopener" hidden>Open CV (PDF)</a>
   <button id="back" type="button" hidden>Back to the cockpit</button>
 </div>
@@ -330,7 +330,7 @@ SECTIONS.forEach(function(sec, i){
   b.addEventListener('click', function(){ startAudio(); api.press(i); });
   keysEl.appendChild(b);
 });
-(function(){ var gb = document.createElement('button'); gb.type = 'button'; gb.textContent = 'Play Debris Sweep'; gb.addEventListener('click', function(){ armGame(); }); keysEl.appendChild(gb); })();
+(function(){ var gb = document.createElement('button'); gb.type = 'button'; gb.textContent = 'Play Debris Sweep'; gb.addEventListener('click', function(){ startGame(); }); keysEl.appendChild(gb); })();
 
 var canvas = document.getElementById('scene'), renderer;
 try { renderer = new THREE.WebGLRenderer({canvas:canvas, antialias:true}); }
@@ -635,7 +635,7 @@ function drawMain(){
     g.fillStyle = HI; g.font = '80px ' + FONT_D; g.fillText('EDOARDO FABBRO', 60, 228);
     g.fillStyle = AMBER; g.font = '40px ' + FONT_M; g.fillText('Venture capital. Restaurant websites. AI.', 60, 306);
     g.fillStyle = HI; g.font = '36px ' + FONT_M; g.fillText('> Press a key on the console to open a section', 60, 384);
-    g.fillStyle = AMBER; g.font = '30px ' + FONT_M; g.fillText('> Lift the guards on the yoke buttons: Debris Sweep, a 60 s game', 60, 438);
+    g.fillStyle = AMBER; g.font = '30px ' + FONT_M; g.fillText('> PLAY on the yoke: Debris Sweep, a 60-second game', 60, 438);
     g.fillStyle = RED; g.font = '32px ' + FONT_M; g.fillText('PLANETS PASSED ' + String(passed).padStart(3, '0'), 60, 506);
   } else {
     g.fillStyle = RED; g.font = '28px ' + FONT_D; g.fillText('WORK  0' + (current + 1) + ' / 03', 60, 72);
@@ -729,7 +729,7 @@ function drawSong(){
   sSong.done();
 }
 sMain.redraw = drawMain; sIcon.redraw = drawIcon; sText.redraw = drawText;
-redraws.push(drawHaz, drawMain, tintIcons, drawIcon, drawText, drawSong);
+redraws.push(drawPlay, drawMain, tintIcons, drawIcon, drawText, drawSong);
 /* side benches: a map of Europe on the left, local time on the right; nothing here is clickable */
 function timeIn(zone){ try{ return new Intl.DateTimeFormat('en-GB', {timeZone:zone, hour:'2-digit', minute:'2-digit'}).format(new Date()); }catch(e){ return '--:--'; } }
 var benchScr = {};
@@ -909,19 +909,26 @@ PALETTES.forEach(function(p, i){
 });
 
 /* ---------- yoke: decorative, symmetric: centre pad, two blades, two upright grips ---------- */
-var hazC = makeCanvas(128, 128), hazT = tex(hazC);
-function drawHaz(){ var g = hazC.getContext('2d'); g.fillStyle = '#141416'; g.fillRect(0, 0, 128, 128); g.fillStyle = RED; for(var i = -128; i < 256; i += 40){ g.beginPath(); g.moveTo(i, 0); g.lineTo(i + 20, 0); g.lineTo(i + 148, 128); g.lineTo(i + 128, 128); g.closePath(); g.fill(); } hazT.needsUpdate = true; }
-var guardPlate = new THREE.MeshStandardMaterial({map:hazT, emissive:0xffffff, emissiveMap:hazT, emissiveIntensity:0.35, roughness:0.4, metalness:0.2});
-var fireMat = new THREE.MeshBasicMaterial({toneMapped:false}), guardMat = new THREE.MeshBasicMaterial({toneMapped:false}), guards = [], guardV = 0, thumbHit = [0, 0];
+var fireMat = new THREE.MeshBasicMaterial({toneMapped:false}), thumbHit = [-9, -9], thBtn = [];
 var yoke = new THREE.Group(); yoke.position.set(0, 0.74, 0.23); scene.add(yoke);
 var yokeParts = [];
 var col = add(yoke, new THREE.CylinderGeometry(0.03, 0.036, 0.5, 20), mTrimDark, 0, -0.13, -0.2); col.rotation.x = 1.05;
 add(yoke, new THREE.CylinderGeometry(0.044, 0.044, 0.05, 24), mKey, 0, -0.03, -0.05).rotation.x = 1.05;
 add(yoke, rpanel(0.2, 0.11, 0.05, 0.04), mPanel);
-var ybar = add(yoke, new THREE.PlaneGeometry(0.12, 0.011), new THREE.MeshBasicMaterial({map:BARTEX, transparent:true, toneMapped:false}), 0, 0.026, 0.0256); barReg.push({bar:ybar, halo:add(yoke, new THREE.PlaneGeometry(0.16, 0.04), haloMat(), 0, 0.026, 0.0253)});
-var ydial = add(yoke, new THREE.CylinderGeometry(0.017, 0.019, 0.012, 28), mMetal, 0, -0.016, 0.03); ydial.rotation.x = Math.PI/2;
+var ybar = add(yoke, new THREE.PlaneGeometry(0.12, 0.009), new THREE.MeshBasicMaterial({map:BARTEX, transparent:true, toneMapped:false}), 0, 0.026, 0.0256); barReg.push({bar:ybar, halo:add(yoke, new THREE.PlaneGeometry(0.16, 0.04), haloMat(), 0, 0.026, 0.0253)});
+/* PLAY: the yoke's centre button starts Debris Sweep */
+var playC = makeCanvas(256, 112), playT = tex(playC), playPressT = -9;
+function drawPlay(){ var g = playC.getContext('2d'); g.clearRect(0, 0, 256, 112); g.fillStyle = '#fff'; g.beginPath(); g.moveTo(40, 34); g.lineTo(40, 78); g.lineTo(76, 56); g.closePath(); g.fill();
+  g.font = '46px ' + FONT_D; g.textAlign = 'left'; g.textBaseline = 'middle'; g.fillText('PLAY', 92, 58); playT.needsUpdate = true; }
+/* a small raised housing on top of the yoke hub, its face tilted up toward the pilot */
+var playH = new THREE.Group(); playH.position.set(0, 0.056, 0.0); playH.rotation.x = -0.75; yoke.add(playH);
+add(playH, rpanel(0.12, 0.062, 0.036, 0.016), mPanel, 0, 0.026, -0.006);
+add(playH, rpanel(0.102, 0.05, 0.006, 0.013), mTrimDark, 0, 0.026, 0.013);
+var playG = new THREE.Group(); playG.position.set(0, 0.026, 0.012); playH.add(playG);
+var playCap = add(playG, rpanel(0.084, 0.035, 0.012, 0.01), mKey, 0, 0, 0.006);
+var playLab = add(playG, new THREE.PlaneGeometry(0.076, 0.033), new THREE.MeshBasicMaterial({map:playT, transparent:true, toneMapped:false}), 0, 0, 0.0125);
+drawPlay(); playCap.userData = {kind:'play'}; playLab.userData = {kind:'play'}; controls.push(playCap, playLab);
 [-1, 1].forEach(function(s){
-  add(yoke, rbox(0.024, 0.008, 0.024, 0.006), mKey, s * 0.058, -0.016, 0.026).rotation.x = Math.PI/2;
   var blade = add(yoke, rpanel(0.12, 0.042, 0.03, 0.018), mPanel, s * 0.15, 0.014, 0); blade.rotation.z = s * 0.3;
   var gr = new THREE.Group(); gr.position.set(s * 0.215, 0.04, 0); gr.rotation.z = s * 0.1; yoke.add(gr);
   yokeParts.push({o:gr, a:[0, -0.05, 0], b:[0, 0.1, 0], r:0.028}, {o:blade, a:[-0.048, 0, 0], b:[0.048, 0, 0], r:0.026});
@@ -931,14 +938,7 @@ var ydial = add(yoke, new THREE.CylinderGeometry(0.017, 0.019, 0.012, 28), mMeta
   [0, 0.026, 0.052].forEach(function(y){ add(gr, new THREE.TorusGeometry(0.0246, 0.0016, 6, 28), mTrimDark, 0, y, 0).rotation.x = Math.PI/2; });
   add(gr, new THREE.TorusGeometry(0.0238, 0.0026, 8, 28), lit(0x7a1a14), 0, 0.078, 0).rotation.x = Math.PI/2;
   add(gr, new THREE.TorusGeometry(0.0125, 0.0022, 8, 24), mMetal, 0, 0.1035, 0.006).rotation.x = Math.PI/2;
-  add(gr, new THREE.CylinderGeometry(0.0105, 0.0105, 0.008, 18), fireMat, 0, 0.105, 0.006);
-  var fh = add(gr, new THREE.SphereGeometry(0.036, 10, 8), new THREE.MeshBasicMaterial({visible:false}), 0, 0.104, 0.004); fh.userData = {kind:'fire'}; controls.push(fh);
-  /* flip-up guard: lifting it arms the thumb button and starts Debris Sweep */
-  var gp = new THREE.Group(); gp.position.set(0, 0.1095, -0.0105); gr.add(gp); guards.push(gp);
-  add(gp, new THREE.CylinderGeometry(0.0028, 0.0028, 0.034, 10), mMetal, 0, 0, 0).rotation.z = Math.PI/2;
-  add(gp, new THREE.BoxGeometry(0.032, 0.003, 0.031), guardPlate, 0, 0.0068, 0.0165);
-  [-1, 1].forEach(function(q){ add(gp, new THREE.BoxGeometry(0.0028, 0.0085, 0.029), mTrimDark, q * 0.0136, 0.0028, 0.0155); });
-  add(gp, new THREE.BoxGeometry(0.03, 0.0016, 0.003), guardMat, 0, 0.0086, 0.0305);
+  thBtn.push(add(gr, new THREE.CylinderGeometry(0.0105, 0.0105, 0.008, 18), fireMat, 0, 0.105, 0.006));
 });
 
 /* ---------- outside: stars, a loop of passing planets, ships and satellites ---------- */
@@ -1107,18 +1107,13 @@ function drawHud(){
 function hudHit(nd){ if(!hudMesh.visible){ return ''; } ray.setFromCamera(nd, camera); var h = ray.intersectObject(hudMesh, false)[0]; if(!h || !h.uv){ return ''; }
   var px = h.uv.x * 600, py = (1 - h.uv.y) * 180, id = ''; hudBtns.forEach(function(b){ if(px >= b.x && px <= b.x + b.w && py >= b.y && py <= b.y + b.h){ id = b.id; } }); return id || 'panel'; }
 function placeHolos(){
-  var gOpen = G.on ? 1 : 0; guardV += (gOpen - guardV) * (reduced ? 1 : Math.min(1, (time - (G.armT || 0) < 0.4 ? 0.2 : 0.14)));
-  guards.forEach(function(gp){ gp.rotation.x = -1.95 * (1 - Math.pow(1 - guardV, 3)); });
-  guardMat.color.set(RED).convertSRGBToLinear().multiplyScalar(!G.on && !focused && !reduced ? 1.4 + Math.sin(time * 3) * 0.9 : 1.4 + (hoverKind === 'fire' ? 1.2 : 0));
+  playLab.material.color.set(AMBER).convertSRGBToLinear().multiplyScalar(G.on ? 0.9 : (hoverKind === 'play' ? 3.2 : (reduced ? 2 : 1.7 + Math.sin(time * 3) * 0.7)));
+  playG.position.z += ((time - playPressT < 0.18 ? 0.006 : 0.012) - playG.position.z) * 0.5;
   hudMesh.visible = G.on; if(!G.on){ return; }
   hudMesh.material.color.set(AMBER).convertSRGBToLinear().multiplyScalar(2.6);
 }
-function armGame(){
-  if(G.on || G.arming){ return; } startAudio(); G.arming = true; G.armT = time; thumbHit = [time, time]; sfx('guard');
-  setTimeout(function(){ G.arming = false; startGame(); }, reduced ? 0 : 420);
-}
 function startGame(){
-  startAudio(); if(focused){ setSection(-1); } hint.style.display = 'none';
+  playPressT = time; startAudio(); if(focused){ setSection(-1); } hint.style.display = 'none';
   G.on = true; G.state = 'run'; G.t = 60; G.score = 0; G.hits = 0; G.missed = 0; G.friendly = 0; G.nextSpawn = 0.6; G.nextSat = 7 + Math.random() * 5; G.newBest = false; G.firing = false;
   targets.forEach(function(T){ T.on = false; T.g.visible = false; }); sats.forEach(function(s){ s.g.visible = false; });
   reticle.visible = true; canvas.style.cursor = 'none'; hudHover = ''; sfx('start'); drawMain(); drawHud();
@@ -1127,7 +1122,7 @@ function startGame(){
 function endRun(){
   G.state = 'over'; G.firing = false; reticle.visible = false; canvas.style.cursor = '';
   if(G.score > G.best){ G.best = G.score; G.newBest = true; try{ localStorage.setItem('ef-debris-best', String(G.best)); }catch(err){} }
-  sfx('end'); drawMain(); drawHud(); live.textContent = 'Run complete. Score ' + G.score + (G.newBest ? ', new best.' : '. Best ' + G.best + '.') + ' Press a thumb button to fly again or Escape to exit.';
+  sfx('end'); drawMain(); drawHud(); live.textContent = 'Run complete. Score ' + G.score + (G.newBest ? ', new best.' : '. Best ' + G.best + '.') + ' Press PLAY or Space to fly again, or Escape to exit.';
 }
 function exitGame(){
   G.on = false; G.state = ''; G.firing = false; reticle.visible = false; canvas.style.cursor = '';
@@ -1146,7 +1141,7 @@ function fire(){
 }
 function updateGame(dt){
   placeHolos();
-  fireMat.color.set(RED).convertSRGBToLinear().multiplyScalar(time < G.flash ? 4 : hoverKind === 'fire' ? 2.6 : G.on && G.state === 'run' ? 1.8 + Math.sin(time * 6) * 0.4 : (!G.on && !focused && !reduced ? 1.6 + Math.sin(time * 3) * 0.8 : 1.4));
+  fireMat.color.set(RED).convertSRGBToLinear().multiplyScalar(time < G.flash ? 4 :  G.on && G.state === 'run' ? 1.8 + Math.sin(time * 6) * 0.4 : (!G.on && !focused && !reduced ? 1.6 + Math.sin(time * 3) * 0.8 : 1.4));
   junkLight.color.set(RED).convertSRGBToLinear().multiplyScalar(Math.sin(time * 9) > 0 ? 3 : 0.6);
   boltMat.color.set(HI).convertSRGBToLinear().multiplyScalar(3);
   reticle.material.color.set(AMBER).convertSRGBToLinear().multiplyScalar(1.6);
@@ -1187,7 +1182,7 @@ function drawGame(){
     g.textAlign = 'left'; g.fillStyle = HI; g.font = '56px ' + FONT_D; g.fillText(G.newBest ? 'NEW BEST' : 'RUN COMPLETE', 60, 180);
     g.font = '130px ' + FONT_M; g.fillText(String(G.score).padStart(4, '0'), 60, 330);
     g.fillStyle = AMBER; g.font = '34px ' + FONT_M; g.fillText('DEBRIS ' + G.hits + '   MISSED ' + G.missed + '   SATELLITES HIT ' + G.friendly, 60, 400);
-    g.fillStyle = HI; g.font = '32px ' + FONT_M; g.fillText('> Thumb button or Space: fly again  ·  Esc: exit', 60, 500);
+    g.fillStyle = HI; g.font = '32px ' + FONT_M; g.fillText('> PLAY or Space: fly again  ·  Esc: exit', 60, 500);
   }
   sMain.done(); passedShown = passed;
 }
@@ -1277,9 +1272,7 @@ function surfDir(b, down){ return t3.copy(b.userData.F).multiplyScalar(Math.cos(
 function rest(A){
   t1.set(A.side * 0.213, 0.065, 0); yoke.localToWorld(t1); aim(A, t3.set(-A.side * 0.12, 0.12, -1), 0.25);
   A.wristGoal.copy(t1).addScaledVector(A.dirGoal, -0.06); A.wristGoal.x += A.side * 0.044;
-  var th = 0.55, dtp = time - thumbHit[A.side < 0 ? 0 : 1];
-  if(G.arming){ th = dtp < 0.18 ? 0.05 : 0.6; } else if(dtp < 0.14){ th = 0.95; } else if(G.on && G.state === 'run'){ th = 0.42; } else if(hoverKind === 'fire'){ th = 0.3; }
-  A.g = [0.92, 0.92, th]; A.rollGoal = A.side * 1.3; A.tx = A.side * 0.2; A.hold = true; A.leanGoal = 0; A.bendGoal.set(A.side, -0.3, 0.3);
+  A.g = [0.92, 0.92, 0.55]; A.rollGoal = A.side * 1.3; A.tx = A.side * 0.2; A.hold = true; A.leanGoal = 0; A.bendGoal.set(A.side, -0.3, 0.3);
 }
 function armForKey(i){ if(i >= 3){ return armL; } keys[i].g.getWorldPosition(t1); return t1.x > 0.05 ? armR : armL; }
 var activeArm = null;
@@ -1313,7 +1306,7 @@ function setGoals(){
   if(A && A.leanGoal === 0 && A.hold){ A.leanGoal = 0.35; }
   activeArm = A;
 }
-var wDir = new THREE.Vector3(), ikV = new THREE.Vector3(), ikC = new THREE.Vector3(), ikE = new THREE.Vector3(), ikN = new THREE.Vector3(), ikB = new THREE.Vector3(), ikZ = new THREE.Vector3();
+var thTgt = new THREE.Vector3(), thV = new THREE.Vector3(), thQ = new THREE.Quaternion(), wDir = new THREE.Vector3(), ikV = new THREE.Vector3(), ikC = new THREE.Vector3(), ikE = new THREE.Vector3(), ikN = new THREE.Vector3(), ikB = new THREE.Vector3(), ikZ = new THREE.Vector3();
 var PHIS = [0]; for(var pq = 1; pq <= 12; pq++){ PHIS.push(pq * 0.15, -pq * 0.15); }
 var PHIS_UNUSED = [], obsA = [], obsB = [];
 for(var oi = 0; oi < 5; oi++){ obsA.push(new THREE.Vector3()); obsB.push(new THREE.Vector3()); }
@@ -1358,6 +1351,16 @@ function solveArm(A, k){
   bx.crossVectors(A.dir, UP).normalize(); bz.crossVectors(bx, A.dir).normalize();
   basis.makeBasis(bx, A.dir, bz); A.hand.quaternion.setFromRotationMatrix(basis); A.hand.rotateY(A.roll); A.hand.position.copy(t3);
   setCurl(A.fIndex, A.c[0]); A.fOthers.forEach(function(f){ setCurl(f, A.c[1]); }); setCurl(A.fThumb, A.c[2]);
+  /* in a run the thumb hovers over the grip's lit button and presses it on every shot */
+  var tr = A.fThumb[0].parent; if(!A.thQ0){ A.thQ0 = tr.quaternion.clone(); A.thAim = 0; }
+  A.thAim += ((G.on && A.hold ? 1 : 0) - A.thAim) * Math.min(1, k * 1.6);
+  if(A.thAim > 0.002){ var press = time - thumbHit[A.side < 0 ? 0 : 1] < 0.12;
+    thTgt.set(0, press ? 0.098 : 0.128, 0.006); yokeParts[A.side < 0 ? 0 : 2].o.localToWorld(thTgt);
+    A.hand.updateMatrixWorld(true); A.hand.worldToLocal(thTgt); thV.subVectors(thTgt, tr.position).normalize();
+    thQ.setFromUnitVectors(UP, thV); tr.quaternion.copy(A.thQ0).slerp(thQ, A.thAim);
+    setCurl(A.fThumb, (press ? 0.45 : 0.18) * A.thAim + A.c[2] * (1 - A.thAim));
+    thBtn[A.side < 0 ? 0 : 1].position.y = press ? 0.1015 : 0.105;
+  } else { tr.quaternion.copy(A.thQ0); }
 }
 
 /* ---------- input ---------- */
@@ -1407,7 +1410,7 @@ document.addEventListener('keydown', function(e){
 function pick(e){
   var r = canvas.getBoundingClientRect(); ndc.set((e.clientX - r.left) / r.width * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1); mouse.copy(ndc);
   if(G.on){ var hh2 = hudHit(ndc), hb2 = hh2 === 'panel' ? '' : hh2; if(hb2 !== hudHover){ hudHover = hb2; drawHud(); } canvas.style.cursor = hudHover ? 'pointer' : (G.state === 'run' ? 'none' : ''); reticle.visible = G.state === 'run' && !hh2; if(hh2){ hoverKind = ''; hoverIndex = -1; return; } }
-  if(G.on && G.state === 'run'){ ray.setFromCamera(ndc, camera); var gh = ray.intersectObjects(controls, false)[0], gk = gh ? gh.object.userData.kind : ''; hoverKind = gk === 'lever' || gk === 'fire' ? gk : ''; hoverIndex = -1; return; }
+  if(G.on && G.state === 'run'){ ray.setFromCamera(ndc, camera); var gh = ray.intersectObjects(controls, false)[0], gk = gh ? gh.object.userData.kind : ''; hoverKind = gk === 'lever' ? gk : ''; hoverIndex = -1; return; }
   if(focused){ hoverKind = ''; hoverIndex = -1; ray.setFromCamera(ndc, camera); var sh = ray.intersectObjects(screenFaces, false)[0], nh = null;
     if(sh && sh.uv){ var o = sh.object.userData.scr, px = sh.uv.x * o.cw, py = (1 - sh.uv.y) * o.ch; o.btns.forEach(function(b){ if(px >= b.x && px <= b.x + b.w && py >= b.y && py <= b.y + b.h){ nh = {o:o, id:b.id}; } }); }
     scrOnFace = !!sh;
@@ -1429,13 +1432,13 @@ canvas.addEventListener('pointerdown', function(e){
   if(G.on){ pick(e); var hh3 = hudHit(ndc);
     if(hh3 === 'exit'){ exitGame(); return; } if(hh3 === 'again'){ startGame(); return; } if(hh3){ return; }
     if(G.state === 'run'){ if(hoverKind === 'lever'){ dragKind = 'lever'; dragX = e.clientX; dragY = e.clientY; try{ canvas.setPointerCapture(e.pointerId); }catch(err){} return; } G.firing = true; G.nextShot = time + 0.17; fire(); return; }
-    ray.setFromCamera(ndc, camera); var oh = ray.intersectObjects(controls, false)[0]; if(oh && oh.object.userData.kind === 'fire'){ startGame(); } else { exitGame(); } return; }
+    ray.setFromCamera(ndc, camera); var oh = ray.intersectObjects(controls, false)[0]; if(oh && oh.object.userData.kind === 'play'){ startGame(); } else { exitGame(); } return; }
   if(focused){ pick(e); if(scrHover){ var b = findBtn(scrHover.o, scrHover.id); if(b){ runBtn(scrHover.o, b); } } else if(!scrOnFace){ setSection(-1); } return; }
   pick(e);
   if(hoverKind === 'lever' || hoverKind === 'knob' || hoverKind === 'dimmer'){ dragKind = hoverKind; dragX = e.clientX; dragY = e.clientY; try{ canvas.setPointerCapture(e.pointerId); }catch(err){} }
   else if(hoverKind === 'palette'){ palPressed = hoverPal; }
   else if(hoverKind === 'selector'){ track = (track + 1) % TRACKS.length; setTrack(track); drawSong(); live.textContent = 'Track ' + (track + 1) + ': ' + TRACKS[track].title; }
-  else if(hoverKind === 'fire'){ armGame(); }
+  else if(hoverKind === 'play'){ startGame(); }
   else if(hoverIndex >= 0){ pressedIndex = hoverIndex; }
 });
 canvas.addEventListener('pointerup', function(){
